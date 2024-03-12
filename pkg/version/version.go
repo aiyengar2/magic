@@ -2,7 +2,6 @@ package version
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/aiyengar2/magic/pkg/git"
 )
@@ -12,9 +11,6 @@ var (
 	Commit  = "HEAD"
 	GitTag  string
 	Version = "v0.0.0-dev"
-
-	Org = "arvindiyengar" // TODO: modify this when finalizing the repository
-	Tag = "v0.0.0-dev"
 )
 
 func init() {
@@ -32,22 +28,8 @@ func init() {
 		}
 	}
 
-	// Get org
-	if org := os.Getenv("ORG"); len(org) > 0 {
-		Org = org
-	}
-
-	// Get tag
-	Tag = os.Getenv("TAG")
-	if len(Tag) == 0 {
-		Tag = Version
-	}
 }
 
 func GetVersion() string {
 	return fmt.Sprintf("%s (%s)", Version, Commit)
-}
-
-func GetTag(repo string) string {
-	return fmt.Sprintf("%s/%s:%s", Org, repo, Tag)
 }

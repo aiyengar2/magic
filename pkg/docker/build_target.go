@@ -2,21 +2,59 @@ package docker
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/aiyengar2/magic/pkg/utils/cmd"
 	"github.com/aiyengar2/magic/pkg/utils/env"
+	"github.com/aiyengar2/magic/pkg/version"
 )
+
+var (
+	Org = "arvindiyengar" // TODO: modify this when finalizing the repository
+	Tag = "v0.0.0-dev"
+)
+
+func init() {
+	// Get org
+	if org := os.Getenv("ORG"); len(org) > 0 {
+		Org = org
+	}
+
+	// Get tag
+	Tag = os.Getenv("TAG")
+	if len(Tag) == 0 {
+		Tag = version.Version
+	}
+}
 
 type BuildTarget struct {
 	Dockerfile      string
-	Tag             string
+	Image           ImageName
 	PlatformTargets []PlatformTarget
 
 	Context   string
 	BuildArgs map[string]string
 	OtherArgs []string
+}
+
+func NewImage(repo string) ImageName {
+	return ImageName{
+		Org:  Org,
+		Repo: repo,
+		Tag:  Tag,
+	}
+}
+
+type ImageName struct {
+	Org  string
+	Repo string
+	Tag  string
+}
+
+func (n ImageName) String() string {
+	return fmt.Sprintf("%s/%s:%s", n.Org, n.Repo, n.Tag)
 }
 
 type PlatformTarget struct {
@@ -28,7 +66,7 @@ type PlatformTarget struct {
 
 func (t BuildTarget) build(publish bool) error {
 	if len(t.PlatformTargets) == 0 {
-		cmd.PrintWarning("no platforms to build for %s.", t.Tag)
+		cmd.PrintWarning("no platforms to build for %s.", t.Image)
 		return nil
 	}
 
@@ -49,7 +87,7 @@ func (t BuildTarget) build(publish bool) error {
 		sort.Strings(pt.PlatformVersions)
 		for _, platformVersion := range pt.PlatformVersions {
 			oav := env.GetOSArchVersions(platformVersion)[0]
-			platformTagSlice := []string{t.Tag}
+			platformTagSlice := []string{t.Image.String()}
 			for _, attr := range []string{oav.OS, oav.Arch, oav.Version} {
 				if len(attr) > 0 {
 					platformTagSlice = append(platformTagSlice, attr)
@@ -66,7 +104,7 @@ func (t BuildTarget) build(publish bool) error {
 	if !publish {
 		return nil
 	}
-	return pushManifest(t.Tag, builtTags...)
+	return pushManifest(t.Image.String(), builtTags...)
 }
 
 func (t BuildTarget) filterEnvironments(cross bool) BuildTarget {
@@ -81,7 +119,7 @@ func (t BuildTarget) filterEnvironments(cross bool) BuildTarget {
 		t.PlatformTargets = []PlatformTarget{{
 			PlatformVersions: osArchs,
 		}}
-		cmd.PrintWarning("inferring PlatformTarget to match %s for %s, this should be defined in the BuildOptions", osArchs, t.Tag)
+		cmd.PrintWarning("inferring PlatformTarget to match %s for %s, this should be defined in the BuildOptions", osArchs, t.Image)
 	}
 
 	// get the list of osArchs
@@ -97,7 +135,7 @@ func (t BuildTarget) filterEnvironments(cross bool) BuildTarget {
 			if osArchMap[p] {
 				platforms = append(platforms, p)
 			} else {
-				fmt.Printf("Skip: building platform %s for image %s when CROSS is not set\n", p, t.Tag)
+				fmt.Printf("Skip: building platform %s for image %s when CROSS is not set\n", p, t.Image)
 			}
 		}
 		if len(platforms) > 0 {

@@ -12,7 +12,6 @@ import (
 	"github.com/aiyengar2/magic/pkg/tool"
 	"github.com/aiyengar2/magic/pkg/utils/cmd"
 	"github.com/aiyengar2/magic/pkg/utils/env"
-	"github.com/aiyengar2/magic/pkg/version"
 	magicversion "github.com/aiyengar2/magic/pkg/version"
 	"github.com/magefile/mage/mg"
 )
@@ -38,7 +37,7 @@ var (
 	}
 	Docker = docker.BuildOptions{{
 		Dockerfile: filepath.Join("package", "Dockerfile"),
-		Tag:        version.GetTag(golang.AppName(".")),
+		Image:      docker.NewImage(golang.AppName(".")),
 	}}
 )
 
@@ -56,7 +55,7 @@ func Version() {
 
 func versionFn() error {
 	fmt.Printf("binary version: %s\n", magicversion.GetVersion())
-	fmt.Printf("package version: %s\n", magicversion.GetTag(golang.AppName(".")))
+	fmt.Printf("package version: %s\n", docker.NewImage(golang.AppName(".")))
 	return nil
 }
 
